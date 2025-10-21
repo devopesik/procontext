@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"task3/internal/model"
+
 	"golang.org/x/net/html/charset"
 )
 
@@ -22,13 +24,7 @@ type Valute struct {
 	ValueStr string `xml:"Value"`
 }
 
-type CurrencyRate struct {
-	Name string
-	Rate float64
-	Date time.Time
-}
-
-func ParseRates(xmlData []byte) ([]CurrencyRate, error) {
+func ParseRates(xmlData []byte) ([]model.CurrencyRate, error) {
 	var vals ValCurs
 	reader := bytes.NewReader(xmlData)
 	decoder := xml.NewDecoder(reader)
@@ -38,7 +34,7 @@ func ParseRates(xmlData []byte) ([]CurrencyRate, error) {
 		return nil, err
 	}
 
-	var result []CurrencyRate
+	var result []model.CurrencyRate
 	date, err := time.Parse("02.01.2006", vals.Date)
 	if err != nil {
 		return nil, err
@@ -53,7 +49,7 @@ func ParseRates(xmlData []byte) ([]CurrencyRate, error) {
 			return nil, err
 		}
 		valuteRate := valuteFloat64 / float64(valute.Nominal)
-		result = append(result, CurrencyRate{
+		result = append(result, model.CurrencyRate{
 			Name: valute.Name,
 			Rate: valuteRate,
 			Date: date,
