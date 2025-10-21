@@ -5,6 +5,7 @@ import (
 	"task3/internal/app"
 	"task3/internal/fetcher"
 	"task3/internal/reporter"
+	"time"
 )
 
 const cbApiUrl = "http://www.cbr.ru/scripts/XML_daily_eng.asp"
@@ -15,7 +16,8 @@ func main() {
 	rep := reporter.NewConsoleReporter()
 	application := app.NewApp(client, rep)
 
-	err := application.Run(daysToFetch)
+	currentDate := time.Now()
+	err := application.Run(daysToFetch, currentDate)
 	if err != nil {
 		log.Fatal(err)
 	}

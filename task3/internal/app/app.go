@@ -27,7 +27,7 @@ func NewApp(fetcher fetcher.CurrencyRateFetcher, reporter reporter.Reporter) *Ap
 	}
 }
 
-func (a *App) Run(daysToFetch int) error {
+func (a *App) Run(daysToFetch int, now time.Time) error {
 	var eg errgroup.Group
 	eg.SetLimit(workersNum)
 	var mu sync.Mutex
@@ -35,7 +35,7 @@ func (a *App) Run(daysToFetch int) error {
 
 	for i := 0; i < daysToFetch; i++ {
 
-		date := time.Now().AddDate(0, 0, -i)
+		date := now.AddDate(0, 0, -i)
 		eg.Go(func() error {
 			xml, err := a.fetcher.GetCourseByDate(date)
 			if err != nil {
