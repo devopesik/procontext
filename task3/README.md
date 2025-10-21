@@ -39,9 +39,10 @@ cd procontext/task3
 go mod init task3
 ```
 
-3. Установите зависимость для обработки кодировки windows-1251:
+3. Установите зависимости:
 ```bash
 go get golang.org/x/net/html/charset
+go get golang.org/x/sync/errgroup
 ```
 
 4. Запустите программу:

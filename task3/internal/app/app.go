@@ -3,12 +3,17 @@ package app
 import (
 	"fmt"
 	"log"
+	"sync"
 	"task3/internal/fetcher"
 	"task3/internal/model"
 	"task3/internal/parser"
 	"task3/internal/reporter"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
+
+const workersNum = 10
 
 type App struct {
 	fetcher  fetcher.CurrencyRateFetcher
@@ -23,24 +28,33 @@ func NewApp(fetcher fetcher.CurrencyRateFetcher, reporter reporter.Reporter) *Ap
 }
 
 func (a *App) Run(daysToFetch int) error {
+	var eg errgroup.Group
+	eg.SetLimit(workersNum)
+	var mu sync.Mutex
 	var totalCurrencyRates []model.CurrencyRate
 
 	for i := 0; i < daysToFetch; i++ {
 
 		date := time.Now().AddDate(0, 0, -i)
+		eg.Go(func() error {
+			xml, err := a.fetcher.GetCourseByDate(date)
+			if err != nil {
+				log.Println("Get data from API error:", err)
+			}
 
-		xml, err := a.fetcher.GetCourseByDate(date)
-		if err != nil {
-			log.Println("Get data from API error:", err)
-			continue
-		}
+			parsedXml, err := parser.ParseRates(xml)
+			if err != nil {
+				log.Println("Parse error:", err)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			totalCurrencyRates = append(totalCurrencyRates, parsedXml...)
+			return nil
+		})
+	}
 
-		parsedXml, err := parser.ParseRates(xml)
-		if err != nil {
-			log.Println("Parse error:", err)
-			continue
-		}
-		totalCurrencyRates = append(totalCurrencyRates, parsedXml...)
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 
 	if len(totalCurrencyRates) == 0 {
