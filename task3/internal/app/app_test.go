@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"task3/internal/model"
 	"testing"
 	"time"
@@ -10,7 +11,7 @@ type mockFetcher struct {
 	data map[time.Time][]byte // дата → XML-данные
 }
 
-func (m *mockFetcher) GetCourseByDate(date time.Time) ([]byte, error) {
+func (m *mockFetcher) GetCourseByDate(ctx context.Context, date time.Time) ([]byte, error) {
 	if data, ok := m.data[date]; ok {
 		return data, nil
 	}
@@ -76,7 +77,7 @@ func TestApp_Run(t *testing.T) {
 
 	app := NewApp(fetcher, reporter)
 
-	err := app.Run(2, testNow) // 2 дня
+	err := app.Run(context.Background(), 2, testNow) // 2 дня
 	if err != nil {
 		t.Fatalf("App.Run() failed: %v", err)
 	}

@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,7 +9,7 @@ import (
 )
 
 type CurrencyRateFetcher interface {
-	GetCourseByDate(time.Time) ([]byte, error)
+	GetCourseByDate(context.Context, time.Time) ([]byte, error)
 }
 
 type cbClient struct {
@@ -25,13 +26,19 @@ func NewClient(baseURL string) CurrencyRateFetcher {
 	}
 }
 
-func (c *cbClient) GetCourseByDate(date time.Time) ([]byte, error) {
+func (c *cbClient) GetCourseByDate(ctx context.Context, date time.Time) ([]byte, error) {
 
 	dateStr := date.Format("02/01/2006")
 
 	fullUrl := fmt.Sprintf("%s?date_req=%s", c.baseURL, dateStr)
 
-	resp, err := c.httpClient.Get(fullUrl)
+	req, err := http.NewRequestWithContext(ctx, "GET", fullUrl, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

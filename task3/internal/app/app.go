@@ -1,8 +1,8 @@
 package app
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"sync"
 	"task3/internal/fetcher"
 	"task3/internal/model"
@@ -27,8 +27,8 @@ func NewApp(fetcher fetcher.CurrencyRateFetcher, reporter reporter.Reporter) *Ap
 	}
 }
 
-func (a *App) Run(daysToFetch int, now time.Time) error {
-	var eg errgroup.Group
+func (a *App) Run(ctx context.Context, daysToFetch int, now time.Time) error {
+	eg, gCtx := errgroup.WithContext(ctx)
 	eg.SetLimit(workersNum)
 	var mu sync.Mutex
 	var totalCurrencyRates []model.CurrencyRate
@@ -37,18 +37,22 @@ func (a *App) Run(daysToFetch int, now time.Time) error {
 
 		date := now.AddDate(0, 0, -i)
 		eg.Go(func() error {
-			xml, err := a.fetcher.GetCourseByDate(date)
+			xml, err := a.fetcher.GetCourseByDate(gCtx, date)
 			if err != nil {
-				log.Println("Get data from API error:", err)
+				return fmt.Errorf("failed to get course by date %v: %w", date, err)
 			}
 
-			parsedXml, err := parser.ParseRates(xml)
+			if len(xml) == 0 {
+				return nil
+			}
+
+			parsedRates, err := parser.ParseRates(xml)
 			if err != nil {
-				log.Println("Parse error:", err)
+				return fmt.Errorf("failed to parse rates for date %v: %w", date, err)
 			}
 			mu.Lock()
 			defer mu.Unlock()
-			totalCurrencyRates = append(totalCurrencyRates, parsedXml...)
+			totalCurrencyRates = append(totalCurrencyRates, parsedRates...)
 			return nil
 		})
 	}
